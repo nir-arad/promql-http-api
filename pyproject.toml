@@ -7,6 +7,7 @@ repository = "https://github.com/nir-arad/promql-http-api"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["prometheus", "promql", "pandas", "dataframe"]
+authors = ["Nir Arad"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

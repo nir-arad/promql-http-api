@@ -80,22 +80,22 @@ print(f'PromQL response error      = {promql_response.error()}')
 ---
 # List of Supported APIs
 
-| API                               | Method           | Arguments |
-|---------------------              |------------------|---
-| /api/v1/query                     | query()          | query, time
-| /api/v1/query_range               | query_range()    | query, start, end, step
-| /api/v1/format_query              | format_query()   | query
-| /api/v1/series                    | series()         | match
-| /api/v1/labels                    | labels()         |
-| /api/v1/label/<label_name>/values | label_values()   | label
-| /api/v1/targets                   | targets()        | state
-| /api/v1/rules                     | rules()          | type
-| /api/v1/alerts                    | alerts()         |
-| /api/v1/alertmanagers             | alertmanagers()  |
-| /api/v1/status/config             | config()         |
-| /api/v1/status/flags              | flags()          |
-| /api/v1/status/runtimeinfo        | runtimeinfo()    |
-| /api/v1/status/buildinfo          | buildinfo()      |
+| API                               | Method                                |
+|---------------------              |---------------------------------------|
+| /api/v1/query                     | query(query, time)                    |
+| /api/v1/query_range               | query_range(query, start, end, step)  |
+| /api/v1/format_query              | format_query(query)                   |
+| /api/v1/series                    | series(match)                         |
+| /api/v1/labels                    | labels()                              |
+| /api/v1/label/<label_name>/values | label_values(label)                   |
+| /api/v1/targets                   | targets(state)                        |
+| /api/v1/rules                     | rules(type)                           |
+| /api/v1/alerts                    | alerts()                              |
+| /api/v1/alertmanagers             | alertmanagers()                       |
+| /api/v1/status/config             | config()                              |
+| /api/v1/status/flags              | flags()                               |
+| /api/v1/status/runtimeinfo        | runtimeinfo()                         |
+| /api/v1/status/buildinfo          | buildinfo()                           |
 
 
 ---

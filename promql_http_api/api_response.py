@@ -17,7 +17,7 @@
 import requests
 from requests.exceptions import ConnectTimeout
 import logging
-from .http_config import http_attempts, http_backoff
+from .http_config import http_retries, http_backoff
 
 
 class ApiResponse:
@@ -26,9 +26,9 @@ class ApiResponse:
     def __init__(self, url: str, *args, **kwargs):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.url = url
-        self.retry = 'timeout' in kwargs
+        self.retry = 'retries' in kwargs
+        self.retries = kwargs.get('retries', http_retries)
         self.timeout = kwargs.get('timeout', 0)
-        self.attempts = kwargs.get('attempts', http_attempts)
         self.backoff = kwargs.get('backoff', http_backoff)
         self.response: requests.Response = None  # type: ignore
         self.get()
@@ -57,20 +57,20 @@ class ApiResponse:
             self.response = requests.get(self.url)
 
     def get_with_retry(self):
-        attempts = self.attempts
+        retries = self.retries
         timeout = self.timeout
-        while attempts > 0:
+        while retries > 0:
             try:
                 self.logger.debug(f'Request url = {self.url}')
                 self.response = ApiResponse.session.get(self.url, timeout=timeout)
                 break
             except ConnectTimeout:
-                self.logger.warning(f"HTTP connection timeout, {attempts} attempts remaining")
-                attempts -= 1
+                self.logger.warning(f"HTTP connection timeout, {retries} retries remaining")
+                retries -= 1
                 timeout *= self.backoff
             except Exception as e:
                 raise e
-        if attempts == 0:
+        if retries == 0:
             raise ConnectTimeout("HTTP GET request failed")
 
     def http_response_ok(self):

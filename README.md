@@ -4,7 +4,11 @@ This python package provides a [Prometheus](https://prometheus.io/) HTTP API cli
 It encapsulates and simplifies the collection of data from a Prometheus server.
 One major feature of this library is that responses to queries are returned as [Pandas](https://pandas.pydata.org/) DataFrames.
 
-Prometheus 
+Prometheus is an open-source system monitoring and alerting toolkit. It collects metrics from configured targets at given intervals, evaluates rule expressions, displays the results, and can trigger alerts if some condition is observed to be true. The Prometheus server exposes an HTTP API for querying the collected data, and a query language called PromQL.
+
+This library is intended to help data scientists who would like to harvest data from a Prometheus server for analysis and visualization. The library is design to be simple to use, and to provide a convenient interface to the Prometheus HTTP API. It is also designed to be performant and scalable, by using the [requests](https://requests.readthedocs.io/en/master/) library and caching HTTP connections to the Prometheus server between API accesses.
+
+For unstable connections, the library supports retrying failed requests. The user may specify the number of retries, the time-out between retries, and the back-off factor for the retry interval.
 
 ## Installation
 
@@ -56,6 +60,17 @@ Alternately, by calling the to_dataframe() method alone, we will implicitly exec
 
 ```python
 # Execute the query implicitly
+df = q.to_dataframe()
+```
+
+Adding retries and time-out to the query work only with explicit execution:
+
+```python
+# Execute the query explicitly
+# with 5 retries and retry intervals of 5, 10, 20, and 40 seconds
+promql_response_data = q(retries=5, timeout=5, backoff=2)
+
+# Convert the cached result to a DataFrame
 df = q.to_dataframe()
 ```
 

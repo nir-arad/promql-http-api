@@ -17,8 +17,9 @@
 from datetime import datetime
 from datetime import timezone
 import logging
-import pandas as pd
+from pandas import DataFrame, Timestamp
 from .api_endpoint import ApiEndpoint
+import pytz
 
 
 class Base(ApiEndpoint):
@@ -28,10 +29,11 @@ class Base(ApiEndpoint):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
         self.timezone = timezone.utc
         self.time_format = "%Y-%m-%dT%H:%M:%S"
-        self.schema: dict = None  # type: ignore
-        self.prom_results: list = None  # type: ignore
+        self.schema = None
+        self.prom_results = None
 
     def to_dataframe(self):
         '''
@@ -52,68 +54,65 @@ class Base(ApiEndpoint):
             return None
         logging.debug(f'prom_results: {self.prom_results}')
 
+        if self.schema:
+            tz = self.schema.get('timezone', 'UTC')
+            self.timezone = pytz.timezone(tz)
+
         prom_result_type = data['resultType']
         if prom_result_type == 'vector':
-            return self.to_dataframe_vector()
+            return self._vector_to_dataframe()
         elif prom_result_type == 'matrix':
-            return self.to_dataframe_matrix()
+            return self._matrix_to_dataframe()
         else:
             return None
 
-    def to_dataframe_vector(self):
+    def _vector_to_dataframe(self) -> DataFrame:
         '''
         Helper function to convert a vector result to a Pandas DataFrame
         '''
         records = []
-        columns = self.get_columns()
+        columns = self.get_schema_columns()
         for result in self.prom_results:
             prom_metric = result['metric']
-            columns: list[str] = \
-                columns if columns else list(prom_metric.keys())
+            columns = columns if columns else list(prom_metric.keys())
             record = [prom_metric[column] for column in columns]
             value = result['value']
-            timestamp = value[0]
-            timestr = self.timestamp_to_str(timestamp)
+            pd_timestamp = Timestamp(value[0], unit='s', tz=self.timezone)
             result = self.cast(value[1])
-            full_record = [timestr] + record + [result]
+            full_record = [pd_timestamp] + record + [result]
             logging.debug(f'record = {full_record}')
             records.append(full_record)
         columns = ['timestamp'] + columns + ['value']
-        df = pd.DataFrame(records, columns=columns)
+        df = DataFrame(records, columns=columns)
         return df
 
-    def to_dataframe_matrix(self):
+    def _matrix_to_dataframe(self):
         records = []
-        columns = self.get_columns()
+        columns = self.get_schema_columns()
         for result in self.prom_results:
             prom_metric = result['metric']
             values = result['values']
             columns = columns if columns else list(prom_metric.keys())
             record = [prom_metric[column] for column in columns]
             for value in values:
-                timestamp = value[0]
-                timestr = self.timestamp_to_str(timestamp)
+                pd_timestamp = Timestamp(value[0], unit='s', tz=self.timezone)
                 result = self.cast(value[1])
-                full_record = [timestr] + record + [result]
+                full_record = [pd_timestamp] + record + [result]
                 logging.debug(f'record = {full_record}')
                 records.append(full_record)
         columns = ['timestamp'] + columns + ['value']
-        df = pd.DataFrame(records, columns=columns)
+        df = DataFrame(records, columns=columns)
         return df
 
-    def get_columns(self) -> list:
+    def get_schema_columns(self) -> list[str]:
         if self.schema:
-            return self.schema['columns']
+            return self.schema.get('columns', [])
         else:
-            return None  # type: ignore
-
-    def timestamp_to_str(self, timestamp):
-        date_time = datetime.fromtimestamp(timestamp)
-        return date_time.astimezone(self.timezone).strftime(self.time_format)
+            return []
 
     def cast(self, result):
         if self.schema:
-            dtype: type = self.schema.get('dtype', str)
+            dtype = self.schema.get('dtype', str)
             result = dtype(result)
         return result
 
@@ -124,11 +123,13 @@ class Query(Base):
     '''
 
     def __init__(self,
-                 url: str = None,    # type: ignore
-                 query: str = None,  # type: ignore
-                 time: str = None):  # type: ignore
+                 url: str | None = None,
+                 query: str | None = None,
+                 time: datetime | None = None):
         super().__init__(url)
-        self.query: str = query
+        self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
+        self.logger.debug(f"url = {url}; query = {query}; time = {time}")
+        self.query = query
         self.time = time
 
     def __str__(self):
@@ -147,10 +148,12 @@ class Query(Base):
             url (str): The URL for the API endpoint
         '''
         url = '/api/v1/query?query=' + self.query
-        url += '&time=' + self.time if self.time else ''
+        if self.time:
+            time_str = str(self.time.timestamp())
+            url += '&time=' + time_str
         return url
 
-    def to_dataframe(self, schema: dict = None):  # type: ignore
+    def to_dataframe(self, schema: dict | None = None):
         if self.query is None:
             return None
         self.schema = schema
@@ -164,12 +167,14 @@ class QueryRange(Base):
     '''
 
     def __init__(self,
-                 url: str = None,    # type: ignore
-                 query: str = None,  # type: ignore
-                 start: str = None,  # type: ignore
-                 end: str = None,    # type: ignore
-                 step: str = None):  # type: ignore
+                 url: str | None = None,
+                 query: str | None = None,
+                 start: datetime | None = None,
+                 end: datetime | None = None,
+                 step: str | None = None):
         super().__init__(url)
+        self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
+        self.logger.debug(f'query = {query}; start = {start}; end = {end}; step = {step}')
         self.query = query
         self.start = start
         self.end = end
@@ -190,13 +195,16 @@ class QueryRange(Base):
         Returns:
             url (str): The URL for the API endpoint
         '''
+        start = str(self.start.timestamp())
+        end = str(self.end.timestamp())
         url = '/api/v1/query_range?query=' + self.query
-        url += '&start=' + self.start
-        url += '&end=' + self.end
+        url += '&start=' + start
+        url += '&end=' + end
         url += '&step=' + self.step
+        self.logger.debug(f'returned url = {url}')
         return url
 
-    def to_dataframe(self, schema: dict = None):  # type: ignore
+    def to_dataframe(self, schema: dict | None = None):
         if self.query is None:
             return None
         self.schema = schema

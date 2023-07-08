@@ -1,5 +1,6 @@
 import pytest
 import promql_http_api
+import datetime
 from promql_http_api import PromqlHttpApi
 
 
@@ -13,18 +14,20 @@ def test_constructor(dut):
 
 
 def test_query(dut):
-    result = dut.query('up')
-    assert isinstance(result, promql_http_api.query.Query)
+    time = datetime.datetime.now()
+    result = dut.query('up', time)
+    assert isinstance(result, promql_http_api.Query)
 
 
 def test_query_range(dut):
-    result = dut.query_range('up')
-    assert isinstance(result, promql_http_api.query.QueryRange)
+    time = datetime.datetime.now()
+    result = dut.query_range('up', time, time, "1m")
+    assert isinstance(result, promql_http_api.QueryRange)
 
 
 def test_format_query(dut):
     result = dut.format_query('up')
-    assert isinstance(result, promql_http_api.format_query.FormatQuery)
+    assert isinstance(result, promql_http_api.FormatQuery)
 
 
 def test_series(dut):

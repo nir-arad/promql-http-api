@@ -40,7 +40,9 @@ Here is a basic usage example:
 from promql_http_api import PromqlHttpApi
 
 api = PromqlHttpApi('http://localhost:9090')
-q = api.query('up', '2020-01-01T12:00:00Z')
+tz = pytz.timezone('UTC')
+q_time = datetime.now()
+q = api.query('up', tz.localize(q_time))
 df = q.to_dataframe()
 print(df)
 ```

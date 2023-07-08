@@ -122,9 +122,9 @@ class Query(Base):
     '''
 
     def __init__(self,
-                 url: str | None = None,
-                 query: str | None = None,
-                 time: datetime | None = None):
+                 url: str = "",
+                 query: str = "",
+                 time: datetime = datetime.now()):
         super().__init__(url)
         self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
         self.logger.debug(f"url = {url}; query = {query}; time = {time}")
@@ -203,7 +203,7 @@ class QueryRange(Base):
         self.logger.debug(f'returned url = {url}')
         return url
 
-    def to_dataframe(self, schema: dict | None = None):
+    def to_dataframe(self, schema: dict = {}):
         if self.query is None:
             return None
         self.schema = schema

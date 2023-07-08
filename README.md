@@ -10,6 +10,9 @@ This library is intended to help data scientists who would like to harvest data 
 
 For unstable connections, the library supports retrying failed requests. The user may specify the number of retries, the time-out between retries, and the back-off factor for the retry interval.
 
+Version 0.2.0 improves timezone awareness. Starting in this version, the HTTP API query is issued with a timestamp value in the 'time', 'start', and 'end' fields. In addition, the query schema now supports a 'timezone' element (provided as a timezone object), which controls the timestamp column formatting in the returned dataframe.
+
+
 ## Installation
 
 To install as a root user:

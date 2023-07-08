@@ -85,7 +85,9 @@ If something goes wrong, you can look at the HTTP response and the PromQL respon
 ```python
 from promql_http_api import PromqlHttpApi
 api = PromqlHttpApi('http://localhost:9090')
-q = api.query('up', '2020-01-01T12:00:00Z')
+tz = pytz.timezone('UTC')
+q_time = datetime.now()
+q = api.query('up', tz.localize(q_time))
 q()
 promql_response = q.response
 http_response = promql_response.response

@@ -33,9 +33,9 @@ class Base(ApiEndpoint):
         self.timezone = timezone.utc
         self.time_format = "%Y-%m-%dT%H:%M:%S"
         self.schema = None
-        self.prom_results = None
+        self.prom_results = {}
 
-    def to_dataframe(self):
+    def to_dataframe(self) -> DataFrame:
         '''
         Convert the PromQL query results to a Pandas DataFrame
         Implicitly executes the query if it has not already been executed
@@ -47,16 +47,15 @@ class Base(ApiEndpoint):
         '''
         data = self.response.data()
         if data is None:
-            return None
+            raise ValueError("No data in PromQL query response")
 
         self.prom_results = data['result']
         if len(self.prom_results) == 0:
-            return None
-        logging.debug(f'prom_results: {self.prom_results}')
+            raise ValueError("PromQL query response has no results")
+        self.logger.debug(f'prom_results: {self.prom_results}')
 
         if self.schema:
-            tz = self.schema.get('timezone', 'UTC')
-            self.timezone = pytz.timezone(tz)
+            self.timezone = self.schema.get('timezone', pytz.timezone('UTC'))
 
         prom_result_type = data['resultType']
         if prom_result_type == 'vector':
@@ -64,7 +63,7 @@ class Base(ApiEndpoint):
         elif prom_result_type == 'matrix':
             return self._matrix_to_dataframe()
         else:
-            return None
+            raise ValueError(f"Unexpected PromQL result type: {prom_result_type}")
 
     def _vector_to_dataframe(self) -> DataFrame:
         '''
@@ -80,7 +79,7 @@ class Base(ApiEndpoint):
             pd_timestamp = Timestamp(value[0], unit='s', tz=self.timezone)
             result = self.cast(value[1])
             full_record = [pd_timestamp] + record + [result]
-            logging.debug(f'record = {full_record}')
+            self.logger.debug(f'record = {full_record}')
             records.append(full_record)
         columns = ['timestamp'] + columns + ['value']
         df = DataFrame(records, columns=columns)
@@ -98,7 +97,7 @@ class Base(ApiEndpoint):
                 pd_timestamp = Timestamp(value[0], unit='s', tz=self.timezone)
                 result = self.cast(value[1])
                 full_record = [pd_timestamp] + record + [result]
-                logging.debug(f'record = {full_record}')
+                self.logger.debug(f'record = {full_record}')
                 records.append(full_record)
         columns = ['timestamp'] + columns + ['value']
         df = DataFrame(records, columns=columns)
@@ -147,7 +146,7 @@ class Query(Base):
         Returns:
             url (str): The URL for the API endpoint
         '''
-        url = '/api/v1/query?query=' + self.query
+        url = '/api/v1/query?query=' + str(self.query)
         if self.time:
             time_str = str(self.time.timestamp())
             url += '&time=' + time_str
@@ -167,11 +166,11 @@ class QueryRange(Base):
     '''
 
     def __init__(self,
-                 url: str | None = None,
-                 query: str | None = None,
-                 start: datetime | None = None,
-                 end: datetime | None = None,
-                 step: str | None = None):
+                 url: str,
+                 query: str,
+                 start: datetime,
+                 end: datetime,
+                 step: str):
         super().__init__(url)
         self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
         self.logger.debug(f'query = {query}; start = {start}; end = {end}; step = {step}')

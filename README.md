@@ -79,6 +79,28 @@ promql_response_data = q(retries=5, timeout=5, backoff=2)
 df = q.to_dataframe()
 ```
 
+### Working with schemas
+
+The `to_dataframe()` method takes an optional `schema` parameter. The schema is a dictionary that controls several elements of the query. A schema may include the following element keys: `columns`, `dtype`, and `timezone`.
+
+The `columns` element controls the PromQL response elements to be included as columns in the returned DataFrame. The returned DataFrame will always include a timestamp column (in seconds since the epoch), and a `value` column. If `columns` is not provided, all the fields returned in a PromQL response will be included in the returned DataFrame. If `columns` is provided, only the fields listed in `columns` will be included in the returned DataFrame.
+
+The `dtype` element controls the data type of the `value` column in the returned DataFrame. The default is `str`. The `dtype` element may be set to any valid Pandas data type.
+
+The `timezone` element allows the user to request an additional `datetime` column which is formatted in the specified timezone. The `timezone` element must be a timezone object from the [pytz](https://pypi.org/project/pytz/) library. If the `timezone` element is not provided, the returned DataFrame will not include a `datetime` column.
+
+Here is an example of how to use a schema:
+```python
+schema = {
+    'columns': ['node', 'sensor'],
+    'dtype': float,
+    'timezone': pytz.timezone('US/Eastern')
+}
+
+df = q.to_dataframe(schema)
+```
+
+
 ## Debugging
 
 If something goes wrong, you can look at the HTTP response and the PromQL response information. Here are some examples:

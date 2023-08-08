@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "promql-http-api"
-version = "0.2.2"
+version = "0.3.0"
 description = "Query a Prometheus server and get a Pandas DataFrame"
 homepage = "https://github.com/nir-arad/promql-http-api"
 repository = "https://github.com/nir-arad/promql-http-api"

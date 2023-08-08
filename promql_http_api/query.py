@@ -29,7 +29,7 @@ class Base(ApiEndpoint):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.timezone = timezone.utc
         self.time_format = "%Y-%m-%dT%H:%M:%S"
         self.schema = None
@@ -66,42 +66,54 @@ class Base(ApiEndpoint):
             raise ValueError(f"Unexpected PromQL result type: {prom_result_type}")
 
     def _vector_to_dataframe(self) -> DataFrame:
-        '''
-        Helper function to convert a vector result to a Pandas DataFrame
-        '''
         records = []
         columns = self.get_schema_columns()
+        df_has_datetime = (self.schema and 'timezone' in self.schema.keys())
         for result in self.prom_results:
             prom_metric = result['metric']
             columns = columns if columns else list(prom_metric.keys())
             record = [prom_metric[column] for column in columns]
             value = result['value']
-            pd_timestamp = Timestamp(value[0], unit='s', tz=self.timezone)
-            result = self.cast(value[1])
-            full_record = [pd_timestamp] + record + [result]
-            self.logger.debug(f'record = {full_record}')
+            full_record = self._make_full_record(value, record, df_has_datetime)
             records.append(full_record)
-        columns = ['timestamp'] + columns + ['value']
+        if df_has_datetime:
+            columns = ['timestamp'] + columns + ['value']
+        else:
+            columns = ['timestamp', 'datetime'] + columns + ['value']
         df = DataFrame(records, columns=columns)
         return df
 
     def _matrix_to_dataframe(self):
         records = []
         columns = self.get_schema_columns()
+        df_has_datetime = (self.schema and 'timezone' in self.schema.keys())
         for result in self.prom_results:
             prom_metric = result['metric']
-            values = result['values']
             columns = columns if columns else list(prom_metric.keys())
             record = [prom_metric[column] for column in columns]
+            values = result['values']
             for value in values:
-                pd_timestamp = Timestamp(value[0], unit='s', tz=self.timezone)
-                result = self.cast(value[1])
-                full_record = [pd_timestamp] + record + [result]
-                self.logger.debug(f'record = {full_record}')
+                full_record = self._make_full_record(value, record, df_has_datetime)
                 records.append(full_record)
-        columns = ['timestamp'] + columns + ['value']
+        if df_has_datetime:
+            columns = ['timestamp', 'datetime'] + columns + ['value']
+        else:
+            columns = ['timestamp'] + columns + ['value']
         df = DataFrame(records, columns=columns)
         return df
+
+    def _make_full_record(self, value, partial_record, df_has_datetime):
+        full_record = []
+        timestamp = value[0]
+        result = self.cast(value[1])
+        if df_has_datetime:
+            pd_timestamp = Timestamp(timestamp, unit='s', tz=self.timezone)
+            full_record = [timestamp, pd_timestamp] + partial_record + [result]
+        else:
+            full_record = [timestamp] + partial_record + [result]
+
+        self.logger.debug(f'record = {full_record}')
+        return full_record
 
     def get_schema_columns(self) -> list[str]:
         if self.schema:
@@ -126,7 +138,7 @@ class Query(Base):
                  query: str = "",
                  time: datetime = datetime.now()):
         super().__init__(url)
-        self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.logger.debug(f"url = {url}; query = {query}; time = {time}")
         self.query = query
         self.time = time
@@ -172,7 +184,7 @@ class QueryRange(Base):
                  end: datetime,
                  step: str):
         super().__init__(url)
-        self.logger = logging.getLogger(f"{__name__}::{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.logger.debug(f'query = {query}; start = {start}; end = {end}; step = {step}')
         self.query = query
         self.start = start
@@ -203,9 +215,9 @@ class QueryRange(Base):
         self.logger.debug(f'returned url = {url}')
         return url
 
-    def to_dataframe(self, schema: dict = {}):
+    def to_dataframe(self, schema: dict = {}) -> DataFrame:
         if self.query is None:
-            return None
+            raise ValueError("Please set the QueryRange::query element to issue a PromQL HTTP API query")
         self.schema = schema
         self.__call__()
         return super().to_dataframe()

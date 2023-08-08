@@ -39,85 +39,85 @@ class PromqlHttpApi:
     def __init__(self, url: str):
         self.url = url
 
-    def query(self, *args, **kwargs):
+    def query(self, *args, **kwargs) -> Query:
         '''
         Get a Query object
         '''
         return Query(self.url, *args, **kwargs)
 
-    def query_range(self, *args, **kwargs):
+    def query_range(self, *args, **kwargs) -> QueryRange:
         '''
         Get a QueryRange object
         '''
         return QueryRange(self.url, *args, **kwargs)
 
-    def format_query(self, *args, **kwargs):
+    def format_query(self, *args, **kwargs) -> FormatQuery:
         '''
         Get a FormatQuery object
         '''
         return FormatQuery(self.url, *args, **kwargs)
 
-    def series(self, *args, **kwargs):
+    def series(self, *args, **kwargs) -> Series:
         '''
         Get a Series object
         '''
         return Series(self.url, *args, **kwargs)
 
-    def labels(self, *args, **kwargs):
+    def labels(self, *args, **kwargs) -> Labels:
         '''
         Get a Labels object
         '''
         return Labels(self.url, *args, **kwargs)
 
-    def label_values(self, *args, **kwargs):
+    def label_values(self, *args, **kwargs) -> LabelValues:
         '''
         Get a LabelValues object
         '''
         return LabelValues(self.url, *args, **kwargs)
 
-    def targets(self, *args, **kwargs):
+    def targets(self, *args, **kwargs) -> Targets:
         '''
         Get a Targets object
         '''
         return Targets(self.url, *args, **kwargs)
 
-    def rules(self, *args, **kwargs):
+    def rules(self, *args, **kwargs) -> Rules:
         '''
         Get a Rules object
         '''
         return Rules(self.url, *args, **kwargs)
 
-    def alerts(self, *args, **kwargs):
+    def alerts(self, *args, **kwargs) -> Alerts:
         '''
         Get an Alerts object
         '''
         return Alerts(self.url, *args, **kwargs)
 
-    def alertmanagers(self, *args, **kwargs):
+    def alertmanagers(self, *args, **kwargs) -> AlertManagers:
         '''
         Get an AlertManagers object
         '''
         return AlertManagers(self.url, *args, **kwargs)
 
-    def config(self, *args, **kwargs):
+    def config(self, *args, **kwargs) -> Config:
         '''
         Get a Config object
         '''
         return Config(self.url, *args, **kwargs)
 
-    def flags(self, *args, **kwargs):
+    def flags(self, *args, **kwargs) -> Flags:
         '''
         Get a Flags object
         '''
         return Flags(self.url, *args, **kwargs)
 
-    def runtimeinfo(self, *args, **kwargs):
+    def runtimeinfo(self, *args, **kwargs) -> RuntimeInfo:
         '''
         Get a RuntimeInfo object
         '''
         return RuntimeInfo(self.url, *args, **kwargs)
 
-    def buildinfo(self, *args, **kwargs):
+    def buildinfo(self, *args, **kwargs) -> BuildInfo:
         '''
         Get a BuildInfo object
         '''

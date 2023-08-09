@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "promql-http-api"
-version = "0.3.0"
+version = "0.3.1"
 description = "Query a Prometheus server and get a Pandas DataFrame"
 homepage = "https://github.com/nir-arad/promql-http-api"
 repository = "https://github.com/nir-arad/promql-http-api"
@@ -26,7 +26,6 @@ httpx = {version = ">=0.22,<0.24", source = "pypi"}
 requests = "^2.31.0"
 pandas = "^2.0.0"
 types-setuptools = "^68.0.0"
-certifi = "^2023.07.22"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1"

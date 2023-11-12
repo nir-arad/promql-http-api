@@ -20,6 +20,7 @@ import logging
 from pandas import DataFrame, Timestamp
 from .api_endpoint import ApiEndpoint
 import pytz
+from typing import Optional
 
 
 class Base(ApiEndpoint):
@@ -115,7 +116,7 @@ class Base(ApiEndpoint):
         self.logger.debug(f'record = {full_record}')
         return full_record
 
-    def get_schema_columns(self) -> list[str]:
+    def get_schema_columns(self) -> 'list[str]':
         if self.schema:
             return self.schema.get('columns', [])
         else:
@@ -164,7 +165,7 @@ class Query(Base):
             url += '&time=' + time_str
         return url
 
-    def to_dataframe(self, schema: dict | None = None):
+    def to_dataframe(self, schema: Optional[dict] = None):
         if self.query is None:
             return None
         self.schema = schema

@@ -165,11 +165,11 @@ class Query(Base):
             url += '&time=' + time_str
         return url
 
-    def to_dataframe(self, schema: Optional[dict] = None):
+    def to_dataframe(self, schema: Optional[dict] = None, authorization_token: str = ""):
         if self.query is None:
             return None
         self.schema = schema
-        self.__call__()
+        self.__call__(authorization_token=authorization_token)
         return super().to_dataframe()
 
 
@@ -216,9 +216,9 @@ class QueryRange(Base):
         self.logger.debug(f'returned url = {url}')
         return url
 
-    def to_dataframe(self, schema: dict = {}) -> DataFrame:
+    def to_dataframe(self, schema: dict = {}, authorization_token: str = "") -> DataFrame:
         if self.query is None:
             raise ValueError("Please set the QueryRange::query element to issue a PromQL HTTP API query")
         self.schema = schema
-        self.__call__()
+        self.__call__(authorization_token=authorization_token)
         return super().to_dataframe()

@@ -30,6 +30,7 @@ class ApiResponse:
         self.retries = kwargs.get('retries', http_retries)
         self.timeout = kwargs.get('timeout', 0)
         self.backoff = kwargs.get('backoff', http_backoff)
+        self.authorization_token = kwargs.get('authorization_token', "")
         self.response: requests.Response = None  # type: ignore
         self.get()
 
@@ -54,7 +55,10 @@ class ApiResponse:
             self.get_with_retry()
         else:
             self.logger.debug(f'Request url = {self.url}')
-            self.response = requests.get(self.url)
+            if self.authorization_token != "":
+                self.response = requests.get(self.url, headers={'Authorization': self.authorization_token})
+            else:
+                self.response = requests.get(self.url)
 
     def get_with_retry(self):
         retries = self.retries
@@ -62,7 +66,10 @@ class ApiResponse:
         while retries > 0:
             try:
                 self.logger.debug(f'Request url = {self.url}')
-                self.response = ApiResponse.session.get(self.url, timeout=timeout)
+                if self.authorization_token != "":
+                    self.response = ApiResponse.session.get(self.url, timeout=timeout, headers={'Authorization': self.authorization_token})
+                else:
+                    self.response = ApiResponse.session.get(self.url, timeout=timeout)
                 break
             except ConnectTimeout:
                 self.logger.warning(f"HTTP connection timeout, {retries} retries remaining")

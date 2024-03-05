@@ -79,6 +79,14 @@ promql_response_data = q(retries=5, timeout=5, backoff=2)
 df = q.to_dataframe()
 ```
 
+### HTTP Authentication (and other headers)
+
+The `PromqlHttpApi` object takes an optional `headers` parameter. This parameter is a dictionary of HTTP headers to be included in the request. The `headers` parameter is useful for including authentication information in the request. Here is an example of how to use the `headers` parameter:
+
+```python
+api = PromqlHttpApi('http://localhost:9090', headers={'Authorization': 'token 0123456789ABCDEF'})
+```
+
 ### Working with schemas
 
 The `to_dataframe()` method takes an optional `schema` parameter. The schema is a dictionary that controls several elements of the query. A schema may include the following element keys: `columns`, `dtype`, and `timezone`.

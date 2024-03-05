@@ -33,7 +33,7 @@ class Base(ApiEndpoint):
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.timezone = timezone.utc
         self.time_format = "%Y-%m-%dT%H:%M:%S"
-        self.schema = None
+        self._schema = None
         self.prom_results = {}
 
     def to_dataframe(self) -> DataFrame:
@@ -55,8 +55,8 @@ class Base(ApiEndpoint):
             raise ValueError("PromQL query response has no results")
         self.logger.debug(f'prom_results: {self.prom_results}')
 
-        if self.schema:
-            self.timezone = self.schema.get('timezone', pytz.timezone('UTC'))
+        if self._schema:
+            self.timezone = self._schema.get('timezone', pytz.timezone('UTC'))
 
         prom_result_type = data['resultType']
         if prom_result_type == 'vector':
@@ -69,64 +69,84 @@ class Base(ApiEndpoint):
     def _vector_to_dataframe(self) -> DataFrame:
         records = []
         columns = self.get_schema_columns()
-        df_has_datetime = (self.schema and 'timezone' in self.schema.keys())
         for result in self.prom_results:
             prom_metric = result['metric']
             columns = columns if columns else list(prom_metric.keys())
             record = [prom_metric[column] for column in columns]
             value = result['value']
-            full_record = self._make_full_record(value, record, df_has_datetime)
+            full_record = self._make_full_record(value, record)
             records.append(full_record)
-        if df_has_datetime:
-            columns = ['timestamp'] + columns + ['value']
-        else:
+
+        if self.schema_has_timezone():
             columns = ['timestamp', 'datetime'] + columns + ['value']
+        else:
+            columns = ['timestamp'] + columns + ['value']
+        self.logger.debug(f'columns = {columns}')
+        self.logger.debug(f'records = {records}')        
         df = DataFrame(records, columns=columns)
         return df
 
     def _matrix_to_dataframe(self):
         records = []
         columns = self.get_schema_columns()
-        df_has_datetime = (self.schema and 'timezone' in self.schema.keys())
         for result in self.prom_results:
             prom_metric = result['metric']
             columns = columns if columns else list(prom_metric.keys())
             record = [prom_metric[column] for column in columns]
             values = result['values']
             for value in values:
-                full_record = self._make_full_record(value, record, df_has_datetime)
+                full_record = self._make_full_record(value, record)
                 records.append(full_record)
-        if df_has_datetime:
+        if self.schema_has_timezone():
             columns = ['timestamp', 'datetime'] + columns + ['value']
         else:
             columns = ['timestamp'] + columns + ['value']
         df = DataFrame(records, columns=columns)
         return df
 
-    def _make_full_record(self, value, partial_record, df_has_datetime):
+    def _make_full_record(self, value, partial_record):
         full_record = []
         timestamp = value[0]
         result = self.cast(value[1])
-        if df_has_datetime:
+        if self.schema_has_timezone():
             pd_timestamp = Timestamp(timestamp, unit='s', tz=self.timezone)
             full_record = [timestamp, pd_timestamp] + partial_record + [result]
         else:
             full_record = [timestamp] + partial_record + [result]
 
-        self.logger.debug(f'record = {full_record}')
+        self.logger.debug(f'partial_record = {partial_record}')
+        self.logger.debug(f'full_record    = {full_record}')
         return full_record
 
     def get_schema_columns(self) -> 'list[str]':
-        if self.schema:
-            return self.schema.get('columns', [])
+        self.logger.debug(f'schema = {self._schema}')
+        if self._schema:
+            cols = self._schema.get('columns', [])
+            self.logger.debug(f'columns = {cols}')
+            return cols
         else:
             return []
 
     def cast(self, result):
-        if self.schema:
-            dtype = self.schema.get('dtype', str)
+        if self._schema:
+            dtype = self._schema.get('dtype', str)
             result = dtype(result)
         return result
+
+    def set_schema(self, schema: Optional[dict]):
+        self._schema = schema
+        return self
+
+    def get_schema(self) -> dict:
+        return self._schema
+
+    def schema_has_timezone(self) -> bool:
+        has: bool = self._schema and 'timezone' in self._schema.keys()
+        if has:
+            self.logger.debug(f'schema has timezone: {self._schema["timezone"]}')
+        else:
+            self.logger.debug('schema has no timezone')
+        return has
 
 
 class Query(Base):
@@ -137,8 +157,9 @@ class Query(Base):
     def __init__(self,
                  url: str = "",
                  query: str = "",
-                 time: datetime = datetime.now()):
-        super().__init__(url)
+                 time: datetime = datetime.now(),
+                 *args, **kwargs):
+        super().__init__(url, *args, **kwargs)
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.logger.debug(f"url = {url}; query = {query}; time = {time}")
         self.query = query
@@ -168,7 +189,7 @@ class Query(Base):
     def to_dataframe(self, schema: Optional[dict] = None):
         if self.query is None:
             return None
-        self.schema = schema
+        self.set_schema(schema)
         self.__call__()
         return super().to_dataframe()
 
@@ -183,8 +204,9 @@ class QueryRange(Base):
                  query: str,
                  start: datetime,
                  end: datetime,
-                 step: str):
-        super().__init__(url)
+                 step: str,
+                 *args, **kwargs):
+        super().__init__(url, *args, **kwargs)
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.logger.debug(f'query = {query}; start = {start}; end = {end}; step = {step}')
         self.query = query

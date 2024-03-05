@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "promql-http-api"
-version = "0.3.2"
+version = "0.3.3"
 description = "Query a Prometheus server and get a Pandas DataFrame"
 homepage = "https://github.com/nir-arad/promql-http-api"
 repository = "https://github.com/nir-arad/promql-http-api"
@@ -41,3 +41,6 @@ ipykernel = "^6.26.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[package]
+include = ["py.typed"]

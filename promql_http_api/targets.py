@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+from typing import Optional
 from .api_endpoint import ApiEndpoint
 
 
@@ -22,8 +24,9 @@ class Targets(ApiEndpoint):
     Targets API endpoint class
     '''
 
-    def __init__(self, url: str, state: str = None):  # type: ignore
-        super().__init__(url)
+    def __init__(self, url: str, state: Optional[str] = None, **kwargs):
+        super().__init__(url, **kwargs)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.state = state
 
     def make_url(self):

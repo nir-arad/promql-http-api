@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+from typing import Optional
 from .api_endpoint import ApiEndpoint
 
 
@@ -22,10 +24,13 @@ class Series(ApiEndpoint):
     Series API endpoint class
     '''
 
-    def __init__(self,
-                 url: str,
-                 match: str = None):  # type: ignore
-        super().__init__(url)
+    def __init__(
+            self,
+            url: str,
+            match: Optional[str] = None,
+            **kwargs):  # type: ignore
+        super().__init__(url, **kwargs)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.match = match
 
     def make_url(self):
@@ -39,6 +44,7 @@ class Series(ApiEndpoint):
         '''
         url = '/api/v1/series?'
 
+        self.logger.debug(f'match = {self.match}')
         if isinstance(self.match, str):
             url += f'match[]={self.match}'
         elif isinstance(self.match, list):

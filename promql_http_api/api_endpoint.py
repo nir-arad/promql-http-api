@@ -24,9 +24,10 @@ class ApiEndpoint:
     Base class for API endpoints
     '''
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, **kwargs):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.base_url = url
+        self.init_kwargs = kwargs
         self.response: ApiResponse = None  # type: ignore
 
     def pretty(self, msg: str):
@@ -36,7 +37,9 @@ class ApiEndpoint:
         url = self.base_url + self.make_url()
         if self.response is not None:
             return
-        self.response = ApiResponse(url, *args, **kwargs)
+        api_kwargs = self.init_kwargs.copy()
+        api_kwargs.update(kwargs)
+        self.response = ApiResponse(url, *args, **api_kwargs)
         self.logger.debug('response = ' + self.pretty(str(self.response)))
         data = self.response.data()
         return data

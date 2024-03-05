@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from .api_endpoint import ApiEndpoint
 
 
@@ -22,11 +23,12 @@ class LabelValues(ApiEndpoint):
     LabelValues API endpoint class
     '''
 
-    def __init__(self, url: str, label: str):
+    def __init__(self, url: str, label: str, **kwargs):
         '''
         LabelValues returns all potential values for a label name.
         '''
-        super().__init__(url)
+        super().__init__(url, **kwargs)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.label = label
 
     def make_url(self):

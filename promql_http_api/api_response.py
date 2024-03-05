@@ -28,8 +28,9 @@ class ApiResponse:
         self.url = url
         self.retry = 'retries' in kwargs
         self.retries = kwargs.get('retries', http_retries)
-        self.timeout = kwargs.get('timeout', 0)
+        self.timeout = kwargs.get('timeout', None)
         self.backoff = kwargs.get('backoff', http_backoff)
+        self.headers = kwargs.get('headers', {})
         self.response: requests.Response = None  # type: ignore
         self.get()
 
@@ -48,21 +49,12 @@ class ApiResponse:
         if self.response:
             return
 
-        self.logger.debug(f"HTTP GET {self.url}")
-
-        if self.retry:
-            self.get_with_retry()
-        else:
-            self.logger.debug(f'Request url = {self.url}')
-            self.response = requests.get(self.url)
-
-    def get_with_retry(self):
         retries = self.retries
         timeout = self.timeout
         while retries > 0:
             try:
-                self.logger.debug(f'Request url = {self.url}')
-                self.response = ApiResponse.session.get(self.url, timeout=timeout)
+                self.logger.debug(f'HTTP GET url: {self.url}; headers: {self.headers}, timeout: {timeout}')
+                self.response = ApiResponse.session.get(self.url, headers=self.headers, timeout=timeout)
                 break
             except ConnectTimeout:
                 self.logger.warning(f"HTTP connection timeout, {retries} retries remaining")
@@ -71,7 +63,7 @@ class ApiResponse:
             except Exception as e:
                 raise e
         if retries == 0:
-            raise ConnectTimeout("HTTP GET request failed")
+            raise ConnectTimeout(f"HTTP GET request failed. URL: {self.url}; headers: {self.headers}")
 
     def http_response_ok(self):
         '''

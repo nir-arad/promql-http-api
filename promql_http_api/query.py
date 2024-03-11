@@ -36,6 +36,21 @@ class Base(ApiEndpoint):
         self._schema = None
         self.prom_results = {}
 
+    @property
+    def schema(self) -> Optional[dict]:
+        return self._schema
+
+    @schema.setter
+    def schema(self, value: Optional[dict]):
+        self._schema = value
+        return self
+
+    def cast(self, result):
+        if self.schema:
+            dtype = self.schema.get('dtype', str)
+            result = dtype(result)
+        return result
+
     def to_dataframe(self) -> DataFrame:
         '''
         Convert the PromQL query results to a Pandas DataFrame
@@ -55,8 +70,8 @@ class Base(ApiEndpoint):
             raise ValueError("PromQL query response has no results")
         self.logger.debug(f'prom_results: {self.prom_results}')
 
-        if self._schema:
-            self.timezone = self._schema.get('timezone', pytz.timezone('UTC'))
+        if self.schema:
+            self.timezone = self.schema.get('timezone', pytz.timezone('UTC'))
 
         prom_result_type = data['resultType']
         if prom_result_type == 'vector':
@@ -74,7 +89,7 @@ class Base(ApiEndpoint):
             columns = columns if columns else list(prom_metric.keys())
             record = [prom_metric[column] for column in columns]
             value = result['value']
-            full_record = self._make_full_record(value, record)
+            full_record = self._make_full_record(record, value)
             records.append(full_record)
 
         if self.schema_has_timezone():
@@ -82,7 +97,7 @@ class Base(ApiEndpoint):
         else:
             columns = ['timestamp'] + columns + ['value']
         self.logger.debug(f'columns = {columns}')
-        self.logger.debug(f'records = {records}')        
+        self.logger.debug(f'records = {records}')
         df = DataFrame(records, columns=columns)
         return df
 
@@ -95,7 +110,7 @@ class Base(ApiEndpoint):
             record = [prom_metric[column] for column in columns]
             values = result['values']
             for value in values:
-                full_record = self._make_full_record(value, record)
+                full_record = self._make_full_record(record, value)
                 records.append(full_record)
         if self.schema_has_timezone():
             columns = ['timestamp', 'datetime'] + columns + ['value']
@@ -104,7 +119,7 @@ class Base(ApiEndpoint):
         df = DataFrame(records, columns=columns)
         return df
 
-    def _make_full_record(self, value, partial_record):
+    def _make_full_record(self, partial_record, value):
         full_record = []
         timestamp = value[0]
         result = self.cast(value[1])
@@ -119,34 +134,21 @@ class Base(ApiEndpoint):
         return full_record
 
     def get_schema_columns(self) -> 'list[str]':
-        self.logger.debug(f'schema = {self._schema}')
-        if self._schema:
-            cols = self._schema.get('columns', [])
+        self.logger.debug(f'schema = {self.schema}')
+        if self.schema:
+            cols = self.schema.get('columns', [])
             self.logger.debug(f'columns = {cols}')
             return cols
         else:
             return []
 
-    def cast(self, result):
-        if self._schema:
-            dtype = self._schema.get('dtype', str)
-            result = dtype(result)
-        return result
-
-    def set_schema(self, schema: Optional[dict]):
-        self._schema = schema
-        return self
-
-    def get_schema(self) -> dict:
-        return self._schema
-
     def schema_has_timezone(self) -> bool:
-        has: bool = self._schema and 'timezone' in self._schema.keys()
-        if has:
-            self.logger.debug(f'schema has timezone: {self._schema["timezone"]}')
+        if self.schema is not None and 'timezone' in self.schema:
+            self.logger.debug(f'schema has timezone: {self.schema["timezone"]}')
+            return True
         else:
             self.logger.debug('schema has no timezone')
-        return has
+            return False
 
 
 class Query(Base):
@@ -189,7 +191,7 @@ class Query(Base):
     def to_dataframe(self, schema: Optional[dict] = None):
         if self.query is None:
             return None
-        self.set_schema(schema)
+        self.schema = schema
         self.__call__()
         return super().to_dataframe()
 

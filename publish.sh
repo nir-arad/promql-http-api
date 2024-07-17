@@ -3,6 +3,9 @@
 echo Updating poetry.lock
 poetry update
 
+echo update package installation
+pip install -e .
+
 echo Running tests
 poetry run pytest
 

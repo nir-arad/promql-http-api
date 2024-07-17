@@ -3,7 +3,7 @@
 echo Updating poetry.lock
 poetry update || { echo "Failed to update poetry.lock"; exit 1; }
 
-echo update package installation
+echo Updating package installation
 pip install -e . || { echo "Failed to update package installation"; exit 1; }
 
 echo Running tests
